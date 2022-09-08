@@ -38,17 +38,28 @@ class PSR {
         //-----------------
 
         PSR(shared_ptr<ThermoPhase> p_gas, 
+            shared_ptr<Kinetics>    p_kin)   : 
+                gas(p_gas), kin(p_kin) {
+            neq = gas->nSpecies() + 1; 
+        }
+
+        PSR(shared_ptr<ThermoPhase> p_gas, 
             shared_ptr<Kinetics>    p_kin,
             vector<double>         &p_yin,
             double                  p_hin,
             double                  p_P)     : 
                 gas(p_gas), kin(p_kin),
                 yin(p_yin), hin(p_hin), P(p_P) {
-
             neq = gas->nSpecies() + 1; 
         }
 
-        void set_T(double p_T) { T=p_T; }
+        void setInlet(vector<double> &p_yin, double p_hin, double p_P) { 
+            yin = p_yin;
+            hin = p_hin;
+            P   = p_P;
+        }
+
+        void setT(double p_T) { T=p_T; }
 
         //-----------------
 
