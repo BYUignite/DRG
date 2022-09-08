@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
 add_executable(drg.x)
-target_sources(drg.x PRIVATE driver.cc streams.cc)
+target_sources(drg.x PRIVATE driver.cc drg.cc streams.cc)
 
 find_library(KINSOL sundials_kinsol)
 find_library(CVODES sundials_cvodes)
