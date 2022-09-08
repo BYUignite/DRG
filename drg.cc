@@ -3,6 +3,8 @@
 #include <cmath>
 #include <iostream>
 
+#include <cstdlib>
+
 using namespace std;
 using namespace Cantera;
 
@@ -41,7 +43,8 @@ DRG::DRG(shared_ptr<ThermoPhase> p_gas, shared_ptr<Kinetics> p_kin,
             size_t nspInRxn = RCc.outerIndexPtr()[irxn+1] - RCc.outerIndexPtr()[irxn];
             for(size_t k=0; k<nspInRxn; k++) {
                 size_t B = RCc.innerIndexPtr()[RCc.outerIndexPtr()[irxn] + k];
-                spsp[A].insert(B);      // does nothing if B is already in the set
+                if(B != A)
+                    spsp[A].insert(B);      // does nothing if B is already in the set
             }
         }
     }
@@ -58,7 +61,6 @@ DRG::DRG(shared_ptr<ThermoPhase> p_gas, shared_ptr<Kinetics> p_kin,
             }
         }
     }
-    
 
 }
 

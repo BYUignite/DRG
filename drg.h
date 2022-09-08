@@ -31,7 +31,7 @@ class DRG {
         set<size_t> spset;
 
         Eigen::SparseMatrix<double> RCc;  // reaction coefficients column major; nsp x nrx
-        Eigen::SparseMatrix<double> RCr;  // reaction coefficients row    major; nsp x nrx
+        Eigen::SparseMatrix<double,Eigen::RowMajor> RCr;  // reaction coefficients row    major; nsp x nrx
 
         vector<vector<pair<size_t, vector<size_t>>>> spsprxns; // spsprxn[A][Bloc] is a pair containing a species B and a vector of rxns shared by A and B
         vector<vector<size_t>> sprxns;    // sprxns[A] is a vector of indicies of rxns involving species A
