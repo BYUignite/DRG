@@ -94,7 +94,7 @@ double DRG::get_rAB(const size_t A, const size_t Bloc, const double sumAbsRatesA
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void DRG::createDRGspeciesSet(){
+void DRG::DRGspeciesSet(){
 
     vector<double> rop(nrx);
     kin->getNetRatesOfProgress(rop.data());
@@ -106,6 +106,7 @@ void DRG::createDRGspeciesSet(){
         for(size_t Bloc=0; Bloc<spsprxns[A].size(); Bloc++) {
             size_t B = spsprxns[A][Bloc].first;
             double rAB = get_rAB(A, Bloc, sumAbsSpRates[A], rop);
+            //cout << endl << gas->speciesName(A) << " " << gas->speciesName(B) << " " << rAB;
             if(rAB < eps) {
                 spSP[A].erase(B);
             }   
@@ -116,6 +117,13 @@ void DRG::createDRGspeciesSet(){
 
     spset.clear();
     fill_spset(spPrincipal);        // recursive
+
+    //----------- merge spset with: spsetU from previous runs, = union
+
+    spsetU.merge(spset);                             // c++17 feature
+    //set_union(spset.begin(), spset.end(),          // or this nastiness, but sorts too
+    //          spsetU.begin(), spsetU.end(), 
+    //          inserter(spsetU, spsetU.begin()));
 }
 
 ////////////////////////////////////////////////////////////////////////////////

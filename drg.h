@@ -21,15 +21,18 @@ using Cantera::Kinetics;
 class DRG {
 
     private: 
-
         shared_ptr<ThermoPhase> gas;
         shared_ptr<Kinetics> kin;
         size_t nsp;
         size_t nrx;
         size_t spPrincipal;    // index of principal species (fuel)
         double eps;
-        set<size_t> spset;
 
+    public:
+        set<size_t> spset;     // species set for one state, starting from empty
+        set<size_t> spsetU;    // union of species sets over multiple states
+
+    private: 
         Eigen::SparseMatrix<double> RCc;  // reaction coefficients column major; nsp x nrx
         Eigen::SparseMatrix<double,Eigen::RowMajor> RCr;  // reaction coefficients row    major; nsp x nrx
 
@@ -44,13 +47,12 @@ class DRG {
 
         double get_rAB(const size_t A, const size_t Bloc, const double sumAbsRatesA, const vector<double> &rop);
 
-        void createDRGspeciesSet();
-
-        void fill_spset(size_t A);
-
-        //-------------- constructor functions
+        void fill_spset(size_t A);        // recursive function called by DRGspeciesSet
 
     public:
+        void DRGspeciesSet();
+
+        //-------------- constructor functions
 
         DRG(shared_ptr<ThermoPhase> p_gas, shared_ptr<Kinetics> p_kin, size_t p_spPrincipal, double p_eps);
 

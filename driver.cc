@@ -21,7 +21,7 @@ int main() {
 
     size_t nsp  = gas->nSpecies();
 
-    double eps = 0.0;
+    double eps = 0.3;
 
     DRG drg(gas, kin, gas->speciesIndex("CH4"), eps);
 
@@ -64,12 +64,15 @@ int main() {
 
     //--------------- solve the psr for each composition
 
-    int nmixf = 10;
+    int nmixf = 11;
     double mixfstart = 0.03; //strm.mixfStoic;
     double mixfend   = 0.07; //mixfstart;
+
     vector<double> mixfvec(nmixf);
     for(int i=0; i<nmixf; i++)
-        mixfvec[i] = mixfstart + (double)(i)/nmixf * (mixfend - mixfstart);
+        mixfvec[i] = mixfstart + (double)(i)/(nmixf-1) * (mixfend - mixfstart);
+
+    cout << endl << "Solving full PSR S-curve for the following mixture fractions: ";
 
     for(int imixf=0; imixf<nmixf; imixf++) {               // LOOP over each composition
 
@@ -78,16 +81,16 @@ int main() {
 
         psr.setInlet(yin, hin, P);
 
-        cout << endl << imixf << " " << mixfvec[imixf]; cout.flush();
+        cout << endl << mixfvec[imixf]; cout.flush();
 
         //--------------- solve psr for each T for given composition
 
-        int    nT   = 200;            // number of T values to solve for; higher values make the solution easier to progress (closer guess)
+        int    nT   = 201;            // number of T values to solve for; higher values make the solution easier to progress (closer guess)
         double Tmin = Tin;
         double Tmax = Tad - 5.1;      // this can be 0.1 or 0.01 for stoich methane/air, but higher like 5 or more for lean to 0.03 mixf
         vector<double> Tvec(nT);      // temperature values
         for(int i=0; i<nT; i++)
-            Tvec[i] = Tmax - (double)(i)/nT * (Tmax - Tmin);
+            Tvec[i] = Tmax - (double)(i)/(nT-1) * (Tmax - Tmin);
 
         double taug = 0.01;              // first guess for tau; solver likes a low guess
         vector<double> y_tau = yad;   // unknown vector: species mass fractions and tau
@@ -98,9 +101,19 @@ int main() {
             psr.solvePSR(y_tau, y_tau_scale, f_scale);     // solve psr at this point
 
             gas->setState_TPY(Tvec[i], P, &y_tau[0]);
-            // drg.createDRGspeciesSet();
+            drg.DRGspeciesSet();
         }
     }
+
+    //--------------- output the skeletal species
+
+    cout << endl;
+    cout << endl << "Cantera mechanism name: " << sol->name();
+    cout << endl << "DRG tolerance: " << eps;
+    cout << endl << "# species: " << drg.spsetU.size();
+    for(auto k : drg.spsetU)
+        cout << endl << "    " << gas->speciesName(k);
+    cout << endl;
 
     return 0;
 }
