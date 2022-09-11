@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <fstream>
 
 #include <cstdlib>
 
@@ -124,6 +125,10 @@ void DRG::DRGspeciesSet(){
     //set_union(spset.begin(), spset.end(),          // or this nastiness, but sorts too
     //          spsetU.begin(), spsetU.end(), 
     //          inserter(spsetU, spsetU.begin()));
+
+    //----------- get the reaction set
+
+    DRGreactionsSet();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -138,3 +143,93 @@ void DRG::fill_spset(size_t A) {
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// called inside of and at the end of DRGspeciesSet
+
+void DRG::DRGreactionsSet(){
+
+    for(auto A : spsetU) {                           // loop over skeletal species A
+        for(auto irxn : sprxns[A]) {                 // loop over reactions that include A
+            if(rxsetU.find(irxn) != rxsetU.end())    // don't process reaction if it's already included
+                continue;
+            bool keepRxn = true;
+            size_t nspInRxn = RCc.outerIndexPtr()[irxn+1] - RCc.outerIndexPtr()[irxn];
+            for(size_t kk=0; kk<nspInRxn; kk++) {    // loop over species k in reaction irxn
+                size_t k = RCc.innerIndexPtr()[RCc.outerIndexPtr()[irxn] + kk];
+                if(k==A) continue;
+                if(spsetU.find(k) == spsetU.end()) { // rxn has a species not in the skeletal list, don't include rxn
+                    keepRxn = false;
+                    break;
+                }
+            }
+            if(keepRxn)
+                rxsetU.insert(irxn);
+        }
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// fdetMech is the name of the detailed mechanism that everything is based on (*.yaml)
+// fsklMech is the name of the new skeletal mechanism file (*.yaml)
+
+void DRG::writeSkeletalMechanism(string fdetMech, string fsklMech) {
+
+    auto rootNd  = AnyMap::fromYamlFile(fdetMech);
+    auto phaseNd = rootNd["phases"].getMapWhere("name", "");
+
+    //----------- reset species array in the phase node
+
+    auto spVec   = phaseNd["species"].as<std::vector<std::string>>();
+    for(int k=nsp-1; k>=0; k--){               // count down so deletions dont screw up the iteration
+        if(spsetU.find(k) == spsetU.end())     // species k not present in skeletal mechanism
+            spVec.erase(spVec.begin()+k);
+    }
+    rootNd["phases"].getMapWhere("name","")["species"] = spVec;   // udate node with skel species
+
+    //----------- reset species thermo and transport information
+
+    auto spInfoVec = rootNd["species"].asVector<AnyMap>();
+    for(int k=spInfoVec.size()-1; k>=0; k--){  // count down as above; loop spInfoVec not orig. gas species list, since latter may be smaller
+        string spname = spInfoVec[k]["name"].asString();
+        size_t isp = gas->speciesIndex(spname);
+        if(spsetU.find(isp) == spsetU.end())   // species k not present in skeletal mechanism
+            spInfoVec.erase(spInfoVec.begin() + k);
+    }
+    rootNd["species"] = spInfoVec;             // update node with skel species info
+
+    //----------- reset reactions
+
+    auto rxInfoVec = rootNd["reactions"].asVector<AnyMap>();
+    for(int i=rxInfoVec.size()-1; i>=0; i--){  // count down as above
+        if(rxsetU.find(i) == rxsetU.end())     // reaction i not present in skeletal mechanism
+            rxInfoVec.erase(rxInfoVec.begin()+i);
+    }
+    rootNd["reactions"] = rxInfoVec;           // update node with skel reactions info
+
+    //----------- third body efficiencies
+
+    rxInfoVec = rootNd["reactions"].asVector<AnyMap>();
+    for(size_t irxn=0; irxn<rxInfoVec.size(); irxn++){
+        if(rxInfoVec[irxn].hasKey("efficiencies")){
+            auto effs = rxInfoVec[irxn]["efficiencies"].asMap<double>();
+            vector<string> toerase(0);
+            for(auto eff = effs.begin(); eff != effs.end(); eff++) {
+                string spName = eff->first;
+                if(spsetU.find(gas->speciesIndex(spName)) == spsetU.end())
+                    toerase.push_back(spName);
+            }
+            for(auto spName : toerase)
+                effs.erase(spName);
+            rxInfoVec[irxn]["efficiencies"] = effs;
+        }
+    }
+    rootNd["reactions"] = rxInfoVec;
+
+    //----------- write the mechanism
+
+    string mechString = rootNd.toYamlString();
+    ofstream ofile(fsklMech);
+    ofile << mechString;
+    ofile.close();
+
+}

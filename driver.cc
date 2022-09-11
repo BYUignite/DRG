@@ -14,8 +14,9 @@ int main() {
 
     //--------------- initialize cantera
 
-    //auto sol = newSolution("H2O2.yaml", "", "None");
-    auto sol = newSolution("gri30.yaml", "", "None");
+    string mechName = "gri30.yaml";        // H2O2.yaml
+
+    auto sol = newSolution(mechName, "", "None");
     auto gas = sol->thermo();
     auto kin = sol->kinetics();
 
@@ -81,7 +82,7 @@ int main() {
 
         psr.setInlet(yin, hin, P);
 
-        cout << endl << mixfvec[imixf]; cout.flush();
+        cout << endl << mixfvec[imixf];
 
         //--------------- solve psr for each T for given composition
 
@@ -114,6 +115,10 @@ int main() {
     for(auto k : drg.spsetU)
         cout << endl << "    " << gas->speciesName(k);
     cout << endl;
+
+    //--------------- create skeletal mechanism
+
+    drg.writeSkeletalMechanism(mechName, "skel.yaml");
 
     return 0;
 }

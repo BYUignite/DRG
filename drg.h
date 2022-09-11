@@ -4,6 +4,7 @@
 #include <utility>     // pair, make_pair
 #include <memory>      // shared_ptr
 #include <set>
+#include <string>
 
 #include "cantera/base/Solution.h"
 #include "cantera/thermo.h"
@@ -13,6 +14,7 @@ using std::vector;
 using std::set;
 using std::pair;
 using std::shared_ptr;
+using std::string;
 using Cantera::ThermoPhase;
 using Cantera::Kinetics;
 
@@ -30,7 +32,8 @@ class DRG {
 
     public:
         set<size_t> spset;     // species set for one state, starting from empty
-        set<size_t> spsetU;    // union of species sets over multiple states
+        set<size_t> spsetU;    // KEY RESULT; union of species sets over multiple states
+        set<size_t> rxsetU;    // set of reactions that contain only species in spsetU
 
     private: 
         Eigen::SparseMatrix<double> RCc;  // reaction coefficients column major; nsp x nrx
@@ -44,13 +47,13 @@ class DRG {
         //-------------- member functions
 
         vector<double> get_sumAbsSpRates(const vector<double> &rop);
-
         double get_rAB(const size_t A, const size_t Bloc, const double sumAbsRatesA, const vector<double> &rop);
-
         void fill_spset(size_t A);        // recursive function called by DRGspeciesSet
+        void DRGreactionsSet();
 
     public:
         void DRGspeciesSet();
+        void writeSkeletalMechanism(string fdetMech, string fsklMech);
 
         //-------------- constructor functions
 
