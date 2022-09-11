@@ -24,7 +24,10 @@ int main() {
 
     double eps = 0.3;
 
-    DRG drg(gas, kin, gas->speciesIndex("CH4"), eps);
+    vector<string> spPrincipal = {"CH4"};
+    vector<string> spExtra     = {"N2"};
+
+    DRG drg(gas, kin, spPrincipal, spExtra, eps);
 
     //--------------- initialize streams
 
@@ -111,10 +114,6 @@ int main() {
     cout << endl;
     cout << endl << "Cantera mechanism name: " << sol->name();
     cout << endl << "DRG tolerance: " << eps;
-    cout << endl << "# species: " << drg.spsetU.size();
-    for(auto k : drg.spsetU)
-        cout << endl << "    " << gas->speciesName(k);
-    cout << endl;
 
     //--------------- create skeletal mechanism
 

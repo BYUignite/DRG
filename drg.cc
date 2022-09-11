@@ -12,8 +12,8 @@ using namespace Cantera;
 ////////////////////////////////////////////////////////////////////////////////
 
 DRG::DRG(shared_ptr<ThermoPhase> p_gas, shared_ptr<Kinetics> p_kin, 
-         size_t p_spPrincipal, double p_eps) :
-    gas(p_gas), kin(p_kin), spPrincipal(p_spPrincipal), eps(p_eps) {
+         vector<string> p_spPrincipal, vector<string> p_Ex, double p_eps) :
+    gas(p_gas), kin(p_kin), spPrincipal(p_spPrincipal), spExtra(p_Ex), eps(p_eps) {
 
     nsp = gas->nSpecies();
     nrx = kin->nReactions();
@@ -117,7 +117,11 @@ void DRG::DRGspeciesSet(){
     //----------- now turn spSP into a set
 
     spset.clear();
-    fill_spset(spPrincipal);        // recursive
+    for(auto spName : spPrincipal) {
+        size_t A = gas->speciesIndex(spName);
+        if(spset.find(A) == spset.end())
+            fill_spset(A);                   // recursive
+    }
 
     //----------- merge spset with: spsetU from previous runs, = union
 
@@ -126,9 +130,6 @@ void DRG::DRGspeciesSet(){
     //          spsetU.begin(), spsetU.end(), 
     //          inserter(spsetU, spsetU.begin()));
 
-    //----------- get the reaction set
-
-    DRGreactionsSet();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -144,7 +145,6 @@ void DRG::fill_spset(size_t A) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// called inside of and at the end of DRGspeciesSet
 
 void DRG::DRGreactionsSet(){
 
@@ -173,6 +173,26 @@ void DRG::DRGreactionsSet(){
 // fsklMech is the name of the new skeletal mechanism file (*.yaml)
 
 void DRG::writeSkeletalMechanism(string fdetMech, string fsklMech) {
+
+    //----------- add extra species to spsetU
+
+    for(auto spName : spExtra)
+        spsetU.insert(gas->speciesIndex(spName));
+
+    //----------- display species
+
+    cout << endl << "# species: " << spsetU.size();
+    for(auto k : spsetU)
+        cout << endl << "    " << gas->speciesName(k);
+    cout << endl;
+
+    //----------- get the reaction set corresponding to spsetU
+
+    DRGreactionsSet();
+
+    cout << endl << "# reactions: " << rxsetU.size() << endl;
+
+    //-----------
 
     auto rootNd  = AnyMap::fromYamlFile(fdetMech);
     auto phaseNd = rootNd["phases"].getMapWhere("name", "");

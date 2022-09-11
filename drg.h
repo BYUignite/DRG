@@ -27,7 +27,8 @@ class DRG {
         shared_ptr<Kinetics> kin;
         size_t nsp;
         size_t nrx;
-        size_t spPrincipal;    // index of principal species (fuel)
+        vector<string> spPrincipal; // index of principal species (fuel)
+        vector<string> spExtra;     // extra species to add to list when building mech; like N2 without any N2 chemistry
         double eps;
 
     public:
@@ -57,6 +58,7 @@ class DRG {
 
         //-------------- constructor functions
 
-        DRG(shared_ptr<ThermoPhase> p_gas, shared_ptr<Kinetics> p_kin, size_t p_spPrincipal, double p_eps);
+        DRG(shared_ptr<ThermoPhase> p_gas, shared_ptr<Kinetics> p_kin, 
+            vector<string> p_spPrincipal, vector<string> p_Ex, double p_eps);
 
 };
