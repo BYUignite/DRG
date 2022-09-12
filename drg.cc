@@ -3,6 +3,8 @@
 #include <cmath>
 #include <iostream>
 #include <fstream>
+#include <string>
+#include <regex>
 
 #include <cstdlib>
 
@@ -166,6 +168,35 @@ void DRG::DRGreactionsSet(){
                 rxsetU.insert(irxn);
         }
     }
+
+    // ISSUE: reaction with species on both sides of an equation is not reported in the coefficient matrices
+    // Use regular expression to find offenders and strip out the relevant reaction.
+    // This might result in some inconsistency with the mechanism and the tolerance chosen,
+    // but that tolerance is not particularly important; the skeletal mechanism will require validation anyway.
+
+    set<size_t> nonSkelSpecies;           // species in the detailed mechanism that are not in the skeletal mechanism
+    for(size_t k=0; k<nsp; k++)
+        if(spsetU.find(k) == spsetU.end())
+            nonSkelSpecies.insert(k);
+    
+    string rxn;
+    string sp;
+    regex rs, re, rm;
+    vector<size_t> toerase;
+    for(auto k : nonSkelSpecies) {
+        sp = gas->speciesName(k);
+        rs = ("^" + sp + " ");
+        re = (" " + sp + "$");
+        rm = (" " + sp + " ");
+        for(auto i : rxsetU) {
+            rxn = kin->reactionString(i);
+            if(regex_search(rxn, rs) || regex_search(rxn, re) || regex_search(rxn, rm)) {
+                toerase.push_back(i);
+            }
+        }
+    }
+    for(auto k : toerase)
+        rxsetU.erase(k);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
