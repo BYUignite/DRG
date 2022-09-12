@@ -3,3 +3,12 @@
 * Uses Cantera for thermochemical properties
     * Note, Cantera was built with Sundials installed separately
 * Uses Sundials Kinsol for solving the system of equations
+
+## Build, run
+* ```mkdir build```
+* ```cd build```
+* ```cmake ..```
+* ```make```
+* ```make install```
+* ```cd ../run```
+* ```./drg.x```

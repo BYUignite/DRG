@@ -20,4 +20,4 @@ endif()
 target_include_directories(drg.x PRIVATE "/usr/local/include")
 target_link_libraries(drg.x ${CANTERA} ${KINSOL} ${CVODES} ${ACCELERATE})
 
-install(TARGETS drg.x DESTINATION "${PROJECT_SOURCE_DIR}")
+install(TARGETS drg.x DESTINATION "${PROJECT_SOURCE_DIR}/run")
