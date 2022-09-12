@@ -12,9 +12,32 @@ using namespace Cantera;
 
 int main() {
 
+    //--------------- user inputs
+
+    string mechName   = "gri30.yaml";
+    string skMechName = "skel.yaml";
+    double eps = 0.3;
+    vector<string> spPrincipal = {"CH4"};
+    vector<string> spExtra     = {"N2"};
+
+    double P = 101325;
+    double T0 = 300;
+    string x0 = "O2:2, N2:7.52";
+    string x1 = "CH4:1";
+
+    int nmixf = 11;
+    double mixfstart = 0.03; //strm.mixfStoic;
+    double mixfend   = 0.07; //mixfstart;
+
+    int    nT   = 201;            // number of T values to solve for; higher values make the solution easier to progress (closer guess)
+    double Tmin = 1000;
+    double TmaxDelta = -5.1;      // this can be 0.1 or 0.01 for stoich methane/air, but higher like 5 or more for lean to 0.03 mixf
+
+    double taug = 0.01;           // first guess for tau; solver likes a low guess
+
     //--------------- initialize cantera
 
-    string mechName = "gri30.yaml";        // H2O2.yaml
+    double T1 = T0;                  // two streams for composition, but one psr inlet
 
     auto sol = newSolution(mechName, "", "None");
     auto gas = sol->thermo();
@@ -22,20 +45,9 @@ int main() {
 
     size_t nsp  = gas->nSpecies();
 
-    double eps = 0.3;
-
-    vector<string> spPrincipal = {"CH4"};
-    vector<string> spExtra     = {"N2"};
-
     DRG drg(gas, kin, spPrincipal, spExtra, eps);
 
     //--------------- initialize streams
-
-    double P = 101325;
-    double T0 = 300;
-    double T1 = T0;                  // two streams for composition, but one psr inlet
-    string x0 = "O2:2, N2:7.52";
-    string x1 = "CH4:1";
 
     gas->setState_TPX(T0, P, x0);
     double h0 = gas->enthalpy_mass();
@@ -53,7 +65,6 @@ int main() {
 
     vector<double> yin(nsp);
     double         hin;
-    double         Tin;
 
     vector<double> yad(nsp);
     double         had;
@@ -68,19 +79,17 @@ int main() {
 
     //--------------- solve the psr for each composition
 
-    int nmixf = 11;
-    double mixfstart = 0.03; //strm.mixfStoic;
-    double mixfend   = 0.07; //mixfstart;
-
     vector<double> mixfvec(nmixf);
     for(int i=0; i<nmixf; i++)
         mixfvec[i] = mixfstart + (double)(i)/(nmixf-1) * (mixfend - mixfstart);
 
     cout << endl << "Solving full PSR S-curve for the following mixture fractions: ";
 
+    double Tdmb;
+
     for(int imixf=0; imixf<nmixf; imixf++) {               // LOOP over each composition
 
-        strm.getMixingState(   mixfvec[imixf], yin, hin, Tin);
+        strm.getMixingState(   mixfvec[imixf], yin, hin, Tdmb);
         strm.getEquilibrium_HP(mixfvec[imixf], yad, had, Tad);
 
         psr.setInlet(yin, hin, P);
@@ -89,14 +98,11 @@ int main() {
 
         //--------------- solve psr for each T for given composition
 
-        int    nT   = 201;            // number of T values to solve for; higher values make the solution easier to progress (closer guess)
-        double Tmin = Tin;
-        double Tmax = Tad - 5.1;      // this can be 0.1 or 0.01 for stoich methane/air, but higher like 5 or more for lean to 0.03 mixf
+        double Tmax = Tad + TmaxDelta;      // this can be 0.1 or 0.01 for stoich methane/air, but higher like 5 or more for lean to 0.03 mixf
         vector<double> Tvec(nT);      // temperature values
         for(int i=0; i<nT; i++)
             Tvec[i] = Tmax - (double)(i)/(nT-1) * (Tmax - Tmin);
 
-        double taug = 0.01;              // first guess for tau; solver likes a low guess
         vector<double> y_tau = yad;   // unknown vector: species mass fractions and tau
         y_tau.push_back(taug);
 
@@ -117,7 +123,7 @@ int main() {
 
     //--------------- create skeletal mechanism
 
-    drg.writeSkeletalMechanism(mechName, "skel.yaml");
+    drg.writeSkeletalMechanism(mechName, skMechName);
 
     return 0;
 }
